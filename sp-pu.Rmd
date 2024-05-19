@@ -1,0 +1,597 @@
+---
+title: "Biathl"
+author: "Daria Rassadina"
+date: "2023-02-18"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+## Загрузка пакетов
+
+```{r}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+
+```{r}
+
+pacman::p_load(pacman, dplyr, ggplot2, tidyr, readr,
+               psych, rmarkdown, stats, readxl, writexl, lubridate, tikzDevice)
+#tempdir()
+#dir.create(tempdir())
+
+```
+
+## Функции
+
+```{r}
+
+lamb <- function(x, dat, exp = T) {
+  if (exp == F) {
+    
+  }
+  if (x == 1) {
+    vect <- -dat
+  }
+  else if (x < 1) {
+    vect <- -x^(-dat/60)
+  }
+  else {
+    vect <- x^(-dat/60)
+  }
+  return(vect)
+}
+
+```
+
+
+```{r}
+
+lamb.step <- function(x, dat) {
+  if (x == 1) {
+    vect <- -dat
+  }
+  else {
+    vect <- -(dat/60)^x
+  }
+  return(vect)
+}
+
+```
+
+```{r}
+
+maxabs <- function(vect) {
+  vect <- (vect - min(vect))/(max(vect) - min(vect))
+  vact <- vect %>% na.omit()
+  return(vect)
+}
+
+maxabsDF <- function(DF) {
+  DF <- t(DF) %>% apply(1, maxabs)
+  return(DF)
+}
+```
+
+```{r}
+points <- function(l, type) {
+      meansSP = data.frame(row.names = seq(1,41))
+      meansMS = data.frame(row.names = seq(1,29))
+      meansIN = data.frame(row.names = seq(1,41))
+      meansPU = data.frame(row.names = seq(1,41))
+      if (type[[1]]$Type[1] == 'SP') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansSP[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansSP)
+      }
+      else if (type[[1]]$Type[1] == 'MS') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,29))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:29]
+              i = i + 1}
+          }
+          meansMS[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansMS)
+      }
+      else if (type[[1]]$Type[1] == 'IN') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansIN[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansIN)
+      }
+      else if (type[[1]]$Type[1] == 'PU') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansPU[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansPU)
+      }
+      column = column + 1
+    }
+
+```
+
+
+```{r}
+points.step <- function(l, type) {
+      meansSP = data.frame(row.names = seq(1,41))
+      meansMS = data.frame(row.names = seq(1,29))
+      meansIN = data.frame(row.names = seq(1,41))
+      meansPU = data.frame(row.names = seq(1,41))
+      if (type[[1]]$Type[1] == 'SP') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansSP[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansSP)
+      }
+      else if (type[[1]]$Type[1] == 'MS') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,29))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:29]
+              i = i + 1}
+          }
+          meansMS[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansMS)
+      }
+      else if (type[[1]]$Type[1] == 'IN') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansIN[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansIN)
+      }
+      else if (type[[1]]$Type[1] == 'PU') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansPU[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansPU)
+      }
+      column = column + 1
+    }
+
+```
+
+```{r}
+metric <- function(s, t) {
+  v <- matrix(0, length(s), length(s))
+  u <- matrix(0, length(t), length(t))
+  for (i in seq(1, length(s))) {
+    for (j in seq(1, length(s))) {
+      v[j, i] = s[i] - s[j]
+    }
+  }
+  for (i in seq(1, length(t))) {
+    for (j in seq(1, length(t))) {
+      u[j, i] = t[i] - t[j]
+    }
+  }
+  return(sqrt(sum((v-u)^2)/(4*(length(s) - 2))))
+}
+
+```
+
+## Данные
+
+```{r}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/data')
+result <- read_excel("result.xlsx", 
+    sheet = "Результат1") %>% 
+  select(ResultGap, ResultOrder, Date, Gender, EventType, Place, Type, Distance) %>% 
+  filter(ResultOrder < 42) 
+
+result <- result %>% mutate(Season = ifelse(result$Date %>% month() < 9, 
+         result$Date %>% year() - 1, 
+         result$Date %>% year()))
+str(result)
+```
+
+```{r}
+res <- result %>% split(f = result$Gender)
+
+res$M <- res$M %>% split(f = res$M$Type)
+res$W <- res$W %>% split(f = res$W$Type)
+
+res$M$IN <- res$M$IN %>% split(f = res$M$IN$Date)
+res$M$SP <- res$M$SP %>% split(f = res$M$SP$Date)
+res$M$MS <- res$M$MS %>% split(f = res$M$MS$Date)
+res$M$PU <- res$M$PU %>% split(f = res$M$PU$Date)
+
+res$W$IN <- res$W$IN %>% split(f = res$W$IN$Date)
+res$W$SP <- res$W$SP %>% split(f = res$W$SP$Date)
+res$W$MS <- res$W$MS %>% split(f = res$W$MS$Date)
+res$W$PU <- res$W$PU %>% split(f = res$W$PU$Date)
+
+#res$W$IN %>% length() + res$W$SP %>% length() + res$W$MS %>% length() + res$W$PU %>% length()
+
+```
+
+```{r}
+
+PU.M <- result[result$Type == 'PU' & result$Gender == 'M',]$Date %>% unique()
+SP.M <- result[result$Type == 'SP' & result$Gender == 'M',]$Date %>% unique()
+
+```
+
+```{r}
+
+spM <- c()
+puM <- c()
+
+for (i in seq(1, length(PU.M))) {
+  for (j in seq(1, length(SP.M))) {
+    dt <- difftime(PU.M[i], SP.M[j]) %>% as.numeric()
+    if (dt <= 7 & dt > 0 & (SP.M[j] %in% spM == F)) {
+      spM <- spM %>% append(SP.M[j])
+      puM <- puM %>% append(PU.M[i])
+      break
+    }
+  }
+}
+
+#for (i in seq(1, length(puM))) {
+#  for (j in seq(1, length(spM))) {
+#    if (i == j) {
+#      print(puM[i])
+#      print(spM[j])
+#      print(i)
+#    }
+#  }
+#}
+
+```
+
+
+```{r}
+
+PU.W <- result[result$Type == 'PU' & result$Gender == 'W',]$Date %>% unique()
+SP.W <- result[result$Type == 'SP' & result$Gender == 'W',]$Date %>% unique()
+
+```
+
+
+
+```{r}
+
+spW <- c()
+puW <- c()
+
+for (i in seq(1, length(PU.W))) {
+  for (j in seq(1, length(SP.W))) {
+    dt <- difftime(PU.W[i], SP.W[j]) %>% as.numeric()
+    if (dt <= 7 & dt > 0 & (SP.W[j] %in% spW == F)) {
+      spW <- spW %>% append(SP.W[j])
+      puW <- puW %>% append(PU.W[i])
+      break
+    }
+  }
+}
+
+#for (i in seq(1, length(puW))) {
+#  for (j in seq(1, length(spW))) {
+#    if (i == j) {
+#      print(puW[i])
+#      print(spW[j])
+#      print(i)
+#    }
+#  }
+#}
+
+```
+
+```{r}
+
+resPU.M <- result[result$Date %in% puM & result$Type == 'PU' & result$Gender == 'M',] 
+resSP.M <- result[result$Date %in% spM & result$Type == 'SP' & result$Gender == 'M',]
+
+resPU.M <- resPU.M %>% split(f = resPU.M$Date)
+resSP.M <- resSP.M %>% split(f = resSP.M$Date)
+
+resPU.W <- result[result$Date %in% puW & result$Type == 'PU' & result$Gender == 'W',] 
+resSP.W <- result[result$Date %in% spW & result$Type == 'SP' & result$Gender == 'W',]
+
+resPU.W <- resPU.W %>% split(f = resPU.W$Date)
+resSP.W <- resSP.W %>% split(f = resSP.W$Date)
+
+```
+
+```{r}
+
+lambdas_M <- c()
+metr_M <- c()
+
+for (year in seq(1, 25)) {
+    opt <- optimize(function(l) 
+      metric(
+        maxabsDF(points(l, resPU.M)[1:41, year]), 
+        maxabsDF(points(1, resSP.M)[1:41, year])), 
+      c(0, 2))
+    lambdas_M <- lambdas_M %>% append(opt$minimum)
+    metr_M <- metr_M %>% append(opt$objective)
+}
+
+#write_xlsx(MetrSP, 'SP-PU.xlsx')
+
+```
+
+```{r}
+
+lambdas_W <- c()
+metr_W <- c()
+
+for (year in seq(1, 25)) {
+    opt <- optimize(function(l) 
+      metric(
+        maxabsDF(points(l, resPU.W)[1:41, year]), 
+        maxabsDF(points(1, resSP.W)[1:41, year])), 
+      c(0, 2))
+    lambdas_W <- lambdas_W %>% append(opt$minimum)
+    metr_W <- metr_W %>% append(opt$objective)
+}
+
+```
+
+
+```{r}
+
+lambdas_M_alt <- c(1)
+
+for (year in seq(1, 25)) {
+  lambdas_M_alt <- lambdas_M_alt %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, resPU.M)[1:41, year]), 
+                                       maxabsDF(points(1, resSP.M)[1:41, year])),
+                    c(0, 2))$minimum)
+}
+
+MetrSP <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas_M_alt))) {
+  for (year in seq(1, 25)) {
+    MetrSP[lam, year] <- metric(maxabsDF(points.step(lambdas_M_alt[[lam]], resSP.M)[1:41, year]), 
+                             maxabsDF(points(1, resPU.M)[1:41, year]))
+  }
+}
+
+MetrSP_M_alt <- as.data.frame(MetrSP)
+
+colnames(MetrSP_M_alt) <- seq(1996, 2020)
+
+MetrSP_M_alt$lambdas_M_alt <- as.numeric(lambdas_M_alt)
+
+```
+
+```{r}
+
+lambdas_W_alt <- c(1)
+
+for (year in seq(1, 25)) {
+  lambdas_W_alt <- lambdas_W_alt %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, resPU.W)[1:41, year]), 
+                                       maxabsDF(points(1, resSP.W)[1:41, year])),
+                    c(0, 2))$minimum)
+}
+
+MetrSP <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas_W_alt))) {
+  for (year in seq(1, 25)) {
+    MetrSP[lam, year] <- metric(maxabsDF(points.step(lambdas_W_alt[[lam]], resSP.W)[1:41, year]), 
+                             maxabsDF(points(1, resPU.W)[1:41, year]))
+  }
+}
+
+MetrSP_W_alt <- as.data.frame(MetrSP)
+
+colnames(MetrSP_W_alt) <- seq(1996, 2020)
+
+MetrSP_W_alt$lambdas_W_alt <- as.numeric(lambdas_W_alt)
+
+#write_xlsx(list(M = MetrSP,
+#                W = MetrSP1), 
+#           'SP-PU-step.xlsx')
+
+```
+
+```{r}
+metr_M <- c()
+metr_W <- c()
+metr_M_alt <- c()
+metr_W_alt <- c()
+
+for (i in seq(1, length(MetrSP_M) - 1)) {
+  metr_M <- metr_M %>% append(MetrSP_M[i+1, i])
+}
+
+for (i in seq(1, length(MetrSP_W) - 1)) {
+  metr_W <- metr_W %>% append(MetrSP_W[i+1, i])
+}
+
+for (i in seq(1, length(MetrSP_M_alt) - 1)) {
+  metr_M_alt <- metr_M_alt %>% append(MetrSP_M_alt[i+1, i])
+}
+
+for (i in seq(1, length(MetrSP_W_alt) - 1)) {
+  metr_W_alt <- metr_W_alt %>% append(MetrSP_W_alt[i+1, i])
+}
+
+```
+
+```{r}
+plots <- as.data.frame(metr_M) %>% cbind(metr_W, metr_M_alt, metr_W_alt)
+plots$year <- seq(1996, 2020)
+```
+
+## Графики
+
+```{r}
+theme_set(theme_light(base_size = 30))
+options(scipen = 9999, digits = 2)
+
+sppu <- data.frame(list(M = lambdas_M, 
+                        W = lambdas_W, 
+                        #M_alt = lambdas_M_alt[2:26], 
+                        #W_alt = lambdas_W_alt[2:26], 
+                        year = seq(1996, 2020), 
+                        meanM = rep(mean(lambdas_M), 25),
+                        meanW = rep(mean(lambdas_W), 25),
+                        metrM = metr_M,
+                        metrW = metr_W))
+                        #meanM_alt = rep(mean(lambdas_M_alt[2:26]), 25),
+                        #meanW_alt = rep(mean(lambdas_W_alt[2:26]), 25)))
+                        #
+write.csv(sppu, 'SP-PU-res.csv')
+```
+
+
+```{r}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+
+M <- ggplot(sppu, aes(x=year)) +
+  geom_line(aes(y = M), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y = meanM), linewidth=1, col = 'darkgrey') +
+  ylim(0.97, 1.4) +
+  xlab("Year") +
+  ylab('Parameter')  +
+  #ggtitle('Мужчины') +
+  #theme(plot.title.position = 'plot', 
+  #    plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+M
+ggsave('M-sppu.png', height = 4, width = 8)
+
+W <- ggplot(sppu, aes(x=year)) +
+  geom_line(aes(y = W), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y = meanW), linewidth=1, col = 'darkgrey') +
+  ylim(0.97, 1.4) +
+  xlab("Year") +
+  ylab('Parameter')  +
+  #ggtitle('Мужчины') +
+  #theme(plot.title.position = 'plot', 
+  #    plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+W
+ggsave('W-sppu.png', height = 4, width = 8)
+#
+#M_alt <- ggplot(sppu, aes(x=year)) +
+#  geom_line(aes(y = M_alt), linewidth=1, col = '#0f2d69') +
+#  geom_line(aes(y = meanM_alt), linewidth=1, col = 'darkgrey') +
+#  ylim(0.7, 1) +
+#  xlab("Год") +
+#  ylab('Параметр')  +
+#  #ggtitle('Мужчины') +
+#  #theme(plot.title.position = 'plot', 
+#  #    plot.title = element_text(hjust = 0.5))  +
+#  theme(text=element_text(family="serif"))
+#M_alt
+##ggsave('M-sppu-alt.png', height = 4, width = 8)
+#
+#W_alt <- ggplot(sppu, aes(x=year)) +
+#  geom_line(aes(y = W_alt), linewidth=1, col = '#0f2d69') +
+#  geom_line(aes(y = meanW_alt), linewidth=1, col = 'darkgrey') +
+#  ylim(0.7, 1) +
+#  xlab("Год") +
+#  ylab('Параметр')  +
+#  #ggtitle('Женщины') +
+#  #theme(plot.title.position = 'plot', 
+#  #    plot.title = element_text(hjust = 0.5))  +
+#  theme(text=element_text(family="serif"))
+#W_alt
+#ggsave('W-sppu-alt.png', height = 4, width = 8)
+
+```
+
+```{r}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+
+ggplot(plots, aes(x=year)) +
+  geom_line(aes(y = metr_M), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y = metr_M_alt), linewidth=1, col = '#7da0d2') +
+  #ylim(0.97, 1.4) +
+  xlab("Год") +
+  ylab('Метрика')  +
+  #ggtitle('Мужчины') +
+  #theme(plot.title.position = 'plot', 
+  #    plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+#ggsave('M-sppu-metr.png', height = 4, width = 8)
+
+ggplot(plots, aes(x=year)) +
+  geom_line(aes(y = metr_W), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y = metr_W_alt), linewidth=1, col = '#7da0d2') +
+  #ylim(0.97, 1.4) +
+  xlab("Год") +
+  ylab('Метрика')  +
+  #ggtitle('Женщины') +
+  #theme(plot.title.position = 'plot', 
+  #    plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+#ggsave('W-sppu-metr.png', height = 4, width = 8)
+
+
+```
+

@@ -1,0 +1,138 @@
+---
+title: "data processing"
+author: "Daria Rassadina"
+date: "2022-12-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F)
+```
+
+```{r}
+pacman::p_load(pacman, dplyr, ggplot2, tidyr, readr,
+               psych, rmarkdown, rpart, rpart.plot, 
+               MASS, tidymodels, mlbench, pROC, caret, lmtest, 
+               sandwich, stargazer, stats, modelsummary, vip, randomForest,
+               xgboost, baguette, ranger, ISLR, openxlsx, 
+               ggplot2, GGally, plotly, lubridate, clock, stringr)
+```
+
+# BIATHLON
+
+```{r message=F, warning=F}
+
+results <- read_csv("results.csv")[, 2:15]
+people <- read_csv("people.csv")[, 2:12]
+
+results$Date <- as.Date(results$Date, "%d-%m-%Y")
+people$DateOfBirth <- as.Date(people$DateOfBirth, "%Y-%m-%d")
+
+res <- results %>% 
+  left_join(people, by = c('FamilyName', 'GivenName')) %>% 
+  separate(Shootings, 
+         into = c("First.Try", "Second.Try", "Third.Try", "Forth.Try"), 
+         sep = "\\+") 
+
+length(unique(res$IBUId))
+length(unique(results$IBUId))
+
+res$AgeD <- interval(res$DateOfBirth, res$Date) %/% days(1)
+res$AgeY <- res$AgeD/365.25
+
+```
+
+```{r}
+res <- res %>% 
+  arrange(ResultOrder) %>% 
+  arrange(Date)
+
+res$ResultGap <- seq(1:length(res$ResultOrder))
+
+res_M <- res %>% filter(Gender == "M")
+res_W <- res %>% filter(Gender == "W")
+```
+
+
+```{r}
+
+for (i in 1:length(res_M$ResultOrder)) {
+  ifelse(res_M$ResultOrder[i] != 1,
+       ifelse(grepl(':', as.character(res_M$Result[i]), fixed = T), 
+              res_M$Result[i] <- as.numeric(res_M$Result[i - 1]) + 
+                60 * strptime(as.character(res_M$Result[i]), "+%M:%OS") %>% minute() +
+                strptime(as.character(res_M$Result[i]), "+%M:%OS") %>% second(), 
+              res_M$Result[i] <- as.numeric(res_M$Result[i - 1]) + 
+                strptime(as.character(res_M$Result[i]), "+%OS") %>% second()
+              ),
+       res_M$Result[i] <- 60 * strptime(as.character(res_M$Result[i]), "%M:%OS") %>%minute() + 
+               strptime(as.character(res_M$Result[i]), "%M:%OS") %>% second()
+       )
+} 
+
+res_M$Result <- as.numeric(res_M$Result)
+
+for (i in 1:length(res_M$ResultOrder)) {
+  ifelse(res_M$ResultOrder[i] != 1,
+       res_M$ResultGap[i] <- res_M$Result[i] - res_M$Result[i - 1],
+       res_M$ResultGap[i] <- 0
+       )
+} 
+
+for (i in 1:length(res_W$ResultOrder)) {
+  ifelse(res_W$ResultOrder[i] != 1,
+       ifelse(grepl(':', as.character(res_W$Result[i]), fixed = T), 
+              res_W$Result[i] <- as.numeric(res_W$Result[i - 1]) + 
+                60 * strptime(as.character(res_W$Result[i]), "+%M:%OS") %>% minute() +
+                strptime(as.character(res_W$Result[i]), "+%M:%OS") %>% second(), 
+              res_W$Result[i] <- as.numeric(res_W$Result[i - 1]) + 
+                strptime(as.character(res_W$Result[i]), "+%OS") %>% second()
+              ),
+       res_W$Result[i] <- 60 * strptime(as.character(res_W$Result[i]), "%M:%OS") %>% minute() + 
+               strptime(as.character(res_W$Result[i]), "%M:%OS") %>% second()
+       )
+} 
+
+res_W$Result <- as.numeric(res_W$Result)
+
+for (i in 1:length(res_W$ResultOrder)) {
+  ifelse(res_W$ResultOrder[i] != 1,
+       res_W$ResultGap[i] <- res_W$Result[i] - res_W$Result[i - 1],
+       res_W$ResultGap[i] <- 0
+       )
+} 
+```
+
+
+```{r}
+res <- res_M %>% 
+  bind_rows(res_W)
+```
+
+#GOLF
+
+```{r warning=F}
+
+golf_data <- read_csv("C:/Users/drass/OneDrive/Рабочий стол/golf_data.csv") %>% drop_na()
+golf_data$RESULT <- golf_data$`ROUND 1`+golf_data$`ROUND 2`+golf_data$`ROUND 3`+golf_data$`ROUND 4`
+
+golf_data <- golf_data[, c('RANK', 'YEAR', 'TOURNAMENT', 'RESULT')]
+
+```
+
+
+```{r}
+for (i in 1:length(golf_data$RESULT)) {
+  if (golf_data$RANK[i] == 1) {
+    win = golf_data$RESULT[i]
+  }
+  golf_data$RESULT[i] <- golf_data$RESULT[i] - win
+}
+```
+
+# SAVE
+
+```{r}
+write.xlsx(golf_data, "D:/ВШЭ/4 курс/вкр/golf_data.xlsx")
+write.xlsx(res, 'res.xlsx')
+```

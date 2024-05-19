@@ -1,0 +1,1879 @@
+---
+title: "Biathl"
+author: "Daria Rassadina"
+date: "2023-02-18"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+## Загрузка пакетов
+
+```{r}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+```{r}
+
+pacman::p_load(pacman, dplyr, ggplot2, tidyr, readr, ggpubr, GGally, xtable, 
+               psych, rmarkdown, stats, readxl, writexl, lubridate, tikzDevice)
+#tempdir()
+#dir.create(tempdir())
+
+```
+
+## Функции
+
+```{r}
+
+lamb <- function(x, dat) {
+  if (x == 1) {
+    vect <- -dat
+  }
+  else if (x < 1) {
+    vect <- -x^(-dat/60)
+  }
+  else {
+    vect <- x^(-dat/60)
+  }
+  return(vect)
+}
+
+
+
+```
+
+```{r}
+
+lamb.step <- function(x, dat) {
+  if (x == 1) {
+    vect <- -dat
+  }
+  else {
+    vect <- -(dat/60)^x
+  }
+  return(vect)
+}
+
+```
+
+```{r}
+
+maxabs <- function(vect) {
+  vect <- (vect - min(vect))/(max(vect) - min(vect))
+  vact <- vect %>% na.omit()
+  return(vect)
+}
+
+maxabsDF <- function(DF) {
+  DF <- t(DF) %>% apply(1, maxabs)
+  return(DF)
+} 
+
+```
+
+```{r}
+points <- function(l, type) {
+      meansSP = data.frame(row.names = seq(1,41))
+      meansMS = data.frame(row.names = seq(1,29))
+      meansIN = data.frame(row.names = seq(1,41))
+      meansPU = data.frame(row.names = seq(1,41))
+      if (type[[1]]$Type[1] == 'SP') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansSP[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansSP)
+      }
+      else if (type[[1]]$Type[1] == 'MS') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,29))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:29]
+              i = i + 1}
+          }
+          meansMS[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansMS)
+      }
+      else if (type[[1]]$Type[1] == 'IN') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansIN[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansIN)
+      }
+      else if (type[[1]]$Type[1] == 'PU') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansPU[, column] <- rowMeans(lamb(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansPU)
+      }
+      column = column + 1
+    }
+
+```
+
+```{r}
+points.step <- function(l, type) {
+      meansSP = data.frame(row.names = seq(1,41))
+      meansMS = data.frame(row.names = seq(1,29))
+      meansIN = data.frame(row.names = seq(1,41))
+      meansPU = data.frame(row.names = seq(1,41))
+      if (type[[1]]$Type[1] == 'SP') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansSP[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansSP)
+      }
+      else if (type[[1]]$Type[1] == 'MS') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,29))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:29]
+              i = i + 1}
+          }
+          meansMS[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansMS)
+      }
+      else if (type[[1]]$Type[1] == 'IN') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansIN[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansIN)
+      }
+      else if (type[[1]]$Type[1] == 'PU') {
+        column = 1
+        for (year in unique(result$Season)) {
+          i = 1
+          data = data.frame(row.names = seq(1,41))
+          for (competition in type){
+            if ((competition$Season[1] < year + 2) & (competition$Season[1] > year - 2)){
+              data[, i] = competition$ResultGap[1:41]
+              i = i + 1}
+          }
+          meansPU[, column] <- rowMeans(lamb.step(l, data), na.rm = T)
+          column = column + 1
+        }
+        return(meansPU)
+      }
+      column = column + 1
+    }
+
+```
+
+```{r}
+metric <- function(s, t) {
+  v <- matrix(0, length(s), length(s))
+  u <- matrix(0, length(t), length(t))
+  for (i in seq(1, length(s))) {
+    for (j in seq(1, length(s))) {
+      v[j, i] = s[i] - s[j]
+    }
+  }
+  for (i in seq(1, length(t))) {
+    for (j in seq(1, length(t))) {
+      u[j, i] = t[i] - t[j]
+    }
+  }
+  return(sqrt(sum((v-u)^2)/(4*(length(s) - 2))))
+}
+
+```
+
+## Данные
+
+```{r warning=F}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/data')
+result <- read_excel("result.xlsx", 
+    sheet = "Результат1") %>% 
+  select(ResultGap, ResultOrder, Date, Gender, EventType, Place, Type, Distance) %>% 
+  filter(ResultOrder < 42) 
+
+result <- result %>% mutate(Season = ifelse(result$Date %>% month() < 9, 
+         result$Date %>% year() - 1, 
+         result$Date %>% year()))
+str(result)
+```
+
+```{r}
+#
+#lstW <- list()
+#for (date in result[result$Type == 'MS' & result$Gender == 'W', ]$Date %>% unique) {
+#  if (result[result$Date == date & result$Type == 'MS' & result$Gender == 'W', ]$ResultGap %>% length < 29 &
+#      result[result$Date == date & result$Type == 'MS' & result$Gender == 'W', ]$Season[1] > 1999) {
+#    lstW <- lstW %>% append(date)
+#  }
+#}
+#
+#lstM <- list()
+#for (date in result[result$Type == 'MS' & result$Gender == 'M', ]$Date %>% unique) {
+#  if (result[result$Date == date & result$Type == 'MS' & result$Gender == 'M', ]$ResultGap %>% length < 29 &
+#      result[result$Date == date & result$Type == 'MS' & result$Gender == 'M', ]$Season[1] > 1999) {
+#    lstM <- lstM %>% append(date)
+#  }
+#}
+#
+#lstM <- lstM %>% append(res$M$MS$`1997-03-16`$Date[1])
+#lstW <- lstW %>% append(res$W$MS$`1999-03-13`$Date[1])
+
+```
+
+```{r}
+#result <- result[(result$Date %in% lstW & result$Gender == 'W' & result$Type == 'MS') == FALSE,]
+#result <- result[(result$Date %in% lstM & result$Gender == 'M' & result$Type == 'MS') == FALSE,]
+```
+
+```{r}
+res <- result %>% split(f = result$Gender)
+
+res$M <- res$M %>% split(f = res$M$Type)
+res$W <- res$W %>% split(f = res$W$Type)
+
+res$M$IN <- res$M$IN %>% split(f = res$M$IN$Date)
+res$M$SP <- res$M$SP %>% split(f = res$M$SP$Date)
+res$M$MS <- res$M$MS %>% split(f = res$M$MS$Date)
+res$M$PU <- res$M$PU %>% split(f = res$M$PU$Date)
+
+res$W$IN <- res$W$IN %>% split(f = res$W$IN$Date)
+res$W$SP <- res$W$SP %>% split(f = res$W$SP$Date)
+res$W$MS <- res$W$MS %>% split(f = res$W$MS$Date)
+res$W$PU <- res$W$PU %>% split(f = res$W$PU$Date)
+
+```
+
+```{r echo=F}
+
+p1 <- c(30, 26, 24, seq(22, 0))
+p2 <- c(50, 46, 43, 40, 37, 34, 32, 30, 28, 26, 24, 22, 20, 18, 16, seq(15, 0))[1:26]
+p3 <- c(60, 54, 48, 43, 40, 38, 36, 34, 32, seq(31, 0))[1:26]
+p4 <- c(90, 75, 60, 50, 45, 40, 36, 34, 32, seq(31, 0))
+
+p1 <- (p1 - min(p1))/(max(p1) - min(p1))
+p2 <- (p2 - min(p2))/(max(p2) - min(p2))
+p3 <- (p3 - min(p3))/(max(p3) - min(p3))
+p4 <- (p4 - min(p4))/(max(p4) - min(p4))
+
+MSp3 <- c(60, 54, 48, 43, seq(40, 32, -2), seq(31, 20), seq(18, 4, -2))
+MSp2 <- c(50, 46, 43, 40, 37, seq(34, 16, -2), seq(15, 2))
+MSp1 <- c(30, 26, 24, seq(22, 2))
+
+MSp3 <- (MSp3 - min(MSp3))/(max(MSp3) - min(MSp3))
+MSp2 <- (MSp2 - min(MSp2))/(max(MSp2) - min(MSp2))
+MSp1 <- (MSp1 - min(MSp1))/(max(MSp1) - min(MSp1))
+
+p3
+
+```
+
+
+
+```{r}
+#m8 <- c(10000, 7500, 5000, 2500, 2000, 1500, 1000, 500, 300, 200)
+#m10 <- c(11000, 8000, 5500, 2750, 2250, 1600, 1000, 750, 500, 500)
+#m12 <- c(12000, 9000, 6000, 4000, 3500, 3000, 2000, 1000, 800, 700)
+#m14 <- c(13000, 10000, 7000, 5000, 4000, 3500, 3000, 2000, 1500, 1000)
+#m19 <- c(15000, 12000, 9000, 7000, 6000, 5000, 4000, 3500, 3000, 2500, 2000, 1750, 1500, 1250, 1000, 900, #800, 700, 600, 500)
+#
+#m8 <- (m8 - min(m8))/(max(m8) - min(m8))
+#m10 <- (m10 - min(m10))/(max(m10) - min(m10))
+#m12 <- (m12 - min(m12))/(max(m12) - min(m12))
+#m14 <- (m14 - min(m14))/(max(m14) - min(m14))
+#m19 <- (m19 - min(m19))/(max(m19) - min(m19))
+
+```
+
+```{r}
+
+plot(maxabsDF(points(1, res$M$SP)[1:41, 17]), type = 'l', lwd = 6, col = '#7da0d2', 
+     axes = FALSE, # Не рисовать оси
+     xlab = '', ylab = '', #Подписи
+     frame.plot = FALSE, # Убрать рамочку
+     panel.first = abline(h = seq(0.1, 1, 0.4), col = "grey80") #,
+     #mgp = c(2, 0.4, 0)
+     )
+#title('1995-1999 Годы', cex.main = 0.8)
+legend('topright', 
+       legend = c('(lambda = 1.29)', '(lambda = 0.93)', 'The'), 
+       lty = c(1, 1, 2),
+       col = c('#7da0d2', '#0f2d69', 'black'),
+       lwd = c(6, 6, 3), 
+       cex = 1.5)
+at = pretty(seq(1, 41),cex.axis = 10)
+mtext(side = 1, text = at, at = at, 
+      col = "grey20", line = 1, cex = 0.9)
+lines(maxabsDF(points(1, res$M$SP)[1:41, 14]), lwd = 6, col = '#0f2d69')
+lines(p3, lty = 2, lwd = 3, col = 'black')
+
+```
+
+## Расчёты
+
+#### Exponential
+
+##### Pursuit-M
+
+```{r}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrPU <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$PU)
+                                                [1:31, year]), c(p3,0)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrPU <- MetrPU %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$PU)
+                    [1:31, year]), 
+           c(p3,0))
+    )
+}
+
+#for (lam in seq(1, length(lambdas))) {
+#  for (i in seq(1, 25)) {
+#    MetrPU[lam, i] <- metric(maxabsDF(points(lambdas[[lam]], res$M$PU)
+#                                                [1:31, year]), p3[1:31])
+#                                                #[1:41, year]), p3),
+#}}
+
+PU <- data.frame('lambda21' = unlist(lambdas),
+                 'metr.to.lambda21' = unlist(MetrPU),
+                 'metr.to.1.21' = unlist(lamb.1.metr))
+
+rownames(PU) <- seq(1996, 2020)
+
+plot(PU$lambda21, type = 'l')
+
+#MetrPU$lambdas <- as.numeric(lambdas)
+```
+
+
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrPU <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$PU)
+                                                [1:26, year]), c(p2,0)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrPU <- MetrPU %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$PU)
+                    [1:26, year]), 
+           c(p2,0))
+    )
+}
+
+PU$lambda7 = unlist(lambdas)
+PU$metr.to.lambda7 = unlist(MetrPU)
+PU$metr.to.1.7 = unlist(lamb.1.metr)
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrPU <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$PU)
+                                                [1:26, year]), p1),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrPU <- MetrPU %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$PU)
+                    [1:26, year]), 
+           p1)
+    )
+}
+
+PU$lambda99 = unlist(lambdas)
+PU$metr.to.lambda99 = unlist(MetrPU)
+PU$metr.to.1.99 = unlist(lamb.1.metr)
+
+```
+
+##### Individual-M
+
+```{r}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrIN <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$IN)
+                                                [1:31, year]), p3),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrIN <- MetrIN %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$IN)
+                    [1:31, year]), 
+           c(p3))
+    )
+}
+
+IN.M <- data.frame('lambda21' = unlist(lambdas),
+                 'metr.to.lambda21' = unlist(MetrIN),
+                 'metr.to.1.21' = unlist(lamb.1.metr),
+                 'year' = seq(1996, 2020))
+
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrIN <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$IN)
+                                                [1:26, year]), c(p2)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrIN <- MetrIN %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$IN)
+                    [1:26, year]), 
+           c(p2))
+    )
+}
+
+IN.M$lambda7 = unlist(lambdas)
+IN.M$metr.to.lambda7 = unlist(MetrIN)
+IN.M$metr.to.1.7 = unlist(lamb.1.metr)
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrIN <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$IN)
+                                                [1:26, year]), p1),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrIN <- MetrIN %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$IN)
+                    [1:26, year]), 
+           p1)
+    )
+}
+
+IN.M$lambda99 = unlist(lambdas)
+IN.M$metr.to.lambda99 = unlist(MetrIN)
+IN.M$metr.to.1.99 = unlist(lamb.1.metr)
+
+```
+
+
+##### Sprint-M
+
+```{r}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrSP <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$SP)
+                                                [1:31, year]), c(p3)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrSP <- MetrSP %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$SP)
+                    [1:31, year]), 
+           c(p3))
+    )
+}
+
+SP.M <- data.frame('lambda21' = unlist(lambdas),
+                 'metr.to.lambda21' = unlist(MetrSP),
+                 'metr.to.1.21' = unlist(lamb.1.metr),
+                 'year' = seq(1996, 2020))
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrSP <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$SP)
+                                                [1:26, year]), c(p2)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrSP <- MetrSP %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$SP)
+                    [1:26, year]), 
+           c(p2))
+    )
+}
+
+SP.M$lambda7 = unlist(lambdas)
+SP.M$metr.to.lambda7 = unlist(MetrSP)
+SP.M$metr.to.1.7 = unlist(lamb.1.metr)
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrSP <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$SP)
+                                                [1:26, year]), p1),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrSP <- MetrSP %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$M$SP)
+                    [1:26, year]), 
+           p1)
+    )
+}
+
+SP.M$lambda99 = unlist(lambdas)
+SP.M$metr.to.lambda99 = unlist(MetrSP)
+SP.M$metr.to.1.99 = unlist(lamb.1.metr)
+
+```
+
+##### Pursuit-W
+
+```{r}
+
+lambdas <- list(1)
+
+for (year in seq(1, 25)) {
+  lambdas <- lambdas %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$PU)
+                                                [1:31, year]), p3[1:31]),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))$minimum)
+}
+
+MetrPU <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(1, 25)) {
+    MetrPU[lam, i] <- metric(maxabsDF(points(lambdas[[lam]], res$W$PU)[1:41, i]), p3)
+  }
+}
+
+MetrPU <- as.data.frame(MetrPU)
+
+colnames(MetrPU) <- seq(1996, 2020)
+
+MetrPU$lambdas <- as.numeric(lambdas)
+```
+
+```{r include=F}
+
+lambdas <- list(1)
+
+for (year in seq(1, 25)) {
+  lambdas <- lambdas %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$PU)
+                                                [1:26, year]), p2[1:26]),
+                                                #[1:31, year]), p2), 
+                    c(0, 2))$minimum)
+}
+
+MetrPU2 <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(1, 25)) {
+    MetrPU2[lam, i] <- metric(maxabsDF(points(lambdas[[lam]], res$W$PU)[1:31, i]), p2)
+  }
+}
+MetrPU2 <- as.data.frame(MetrPU2)
+
+colnames(MetrPU2) <- seq(1996, 2020)
+
+MetrPU2$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r include=F}
+
+lambdas <- list(1)
+
+for (year in seq(1, 25)) {
+  lambdas <- lambdas %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$PU)[1:26, year]), p1), 
+                    c(0, 2))$minimum)
+}
+
+MetrPU3 <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(1, 25)) {
+    MetrPU3[lam, i] <- metric(maxabsDF(points(lambdas[[lam]], res$W$PU)[1:26, i]), p1)
+  }
+}
+MetrPU3 <- as.data.frame(MetrPU3)
+
+colnames(MetrPU3) <- seq(1996, 2020)
+
+MetrPU3$lambdas <- as.numeric(lambdas)
+
+```
+
+##### Individual-W
+
+```{r}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrIN <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$IN)
+                                                [1:31, year]), c(p3)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrIN <- MetrIN %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$W$IN)
+                    [1:31, year]), 
+           c(p3))
+    )
+}
+
+IN.W <- data.frame('lambda21' = unlist(lambdas),
+                 'metr.to.lambda21' = unlist(MetrIN),
+                 'metr.to.1.21' = unlist(lamb.1.metr),
+                 'year' = seq(1996, 2020))
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrIN <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$IN)
+                                                [1:26, year]), c(p2)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrIN <- MetrIN %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$W$IN)
+                    [1:26, year]), 
+           c(p2))
+    )
+}
+
+IN.W$lambda7 = unlist(lambdas)
+IN.W$metr.to.lambda7 = unlist(MetrIN)
+IN.W$metr.to.1.7 = unlist(lamb.1.metr)
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrIN <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$IN)
+                                                [1:26, year]), p1),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrIN <- MetrIN %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$W$IN)
+                    [1:26, year]), 
+           p1)
+    )
+}
+
+IN.W$lambda99 = unlist(lambdas)
+IN.W$metr.to.lambda99 = unlist(MetrIN)
+IN.W$metr.to.1.99 = unlist(lamb.1.metr)
+
+```
+
+
+##### Sprint-W
+
+```{r}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrSP <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$SP)
+                                                [1:31, year]), c(p3)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrSP <- MetrSP %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$W$SP)
+                    [1:31, year]), 
+           c(p3))
+    )
+}
+
+SP.W <- data.frame('lambda21' = unlist(lambdas),
+                 'metr.to.lambda21' = unlist(MetrSP),
+                 'metr.to.1.21' = unlist(lamb.1.metr),
+                 'year' = seq(1996, 2020))
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrSP <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$SP)
+                                                [1:26, year]), c(p2)),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrSP <- MetrSP %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$W$SP)
+                    [1:26, year]), 
+           c(p2))
+    )
+}
+
+SP.W$lambda7 = unlist(lambdas)
+SP.W$metr.to.lambda7 = unlist(MetrSP)
+SP.W$metr.to.1.7 = unlist(lamb.1.metr)
+
+```
+
+```{r include=F}
+
+lambdas <- list()
+lamb.1.metr <- list()
+MetrSP <- list()
+
+for (year in seq(1, 25)) {
+  opt <- optimize(function(l) metric(maxabsDF(points(l, res$W$SP)
+                                                [1:26, year]), p1),
+                                                #[1:41, year]), p3), 
+                    c(0, 2))
+  lambdas <- lambdas %>% append(opt$minimum)
+  MetrSP <- MetrSP %>% append(opt$objective)
+  lamb.1.metr <- lamb.1.metr %>% append(
+    metric(maxabsDF(points(1, res$W$SP)
+                    [1:26, year]), 
+           p1)
+    )
+}
+
+SP.W$lambda99 = unlist(lambdas)
+SP.W$metr.to.lambda99 = unlist(MetrSP)
+SP.W$metr.to.1.99 = unlist(lamb.1.metr)
+
+```
+
+```{r}
+#write.csv(SP.W, 'Sprint-W-new.csv')
+#write.csv(IN.W, 'Ind-W-new.csv')
+#write.csv(SP.M, 'Sprint-M-new.csv')
+#write.csv(IN.M, 'Ind-M-new.csv')
+```
+
+
+##### Mass Start
+
+```{r}
+
+lambdas <- list(1)
+
+for (year in seq(5, 25)) {
+  lambdas <- lambdas %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$MS)[, year]), MSp3), 
+                    c(0, 2))$minimum)
+}
+
+MetrMSM3 <- matrix(0, 22, 21)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(5, 25)) {
+    MetrMSM3[lam, i - 4] <- metric(maxabsDF(points(lambdas[[lam]], res$M$MS)[, i]), MSp3)
+  }
+}
+
+MetrMSM3 <- as.data.frame(MetrMSM3)
+
+colnames(MetrMSM3) <- seq(2000, 2020)
+
+MetrMSM3$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r}
+
+lambdasMS8 <- list(1)
+
+for (year in seq(5, 25)) {
+  lambdasMS8 <- lambdasMS8 %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, res$W$MS)[, year]), MSp3), 
+                    c(0, 2))$minimum)
+}
+
+MetrMSW3 <- matrix(0, 22, 21)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(5, 25)) {
+    MetrMSW3[lam, i - 4] <- metric(maxabsDF(points.step(lambdas[[lam]], res$W$MS)[, i]), MSp3)
+  }
+}
+
+MetrMSW3 <- as.data.frame(MetrMSW3)
+
+colnames(MetrMSW3) <- seq(2000, 2020)
+
+MetrMSW3$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r}
+
+lambdas <- list(1)
+
+for (year in seq(5, 25)) {
+  lambdas <- lambdas %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points(l, res$M$MS)[, year]), MSp2), 
+                    c(0, 2))$minimum)
+}
+
+MetrMSM2 <- matrix(0, 22, 21)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(5, 25)) {
+    MetrMSM2[lam, i - 4] <- metric(maxabsDF(points(lambdas[[lam]], res$M$MS)[, i]), MSp2)
+  }
+}
+
+MetrMSM2 <- as.data.frame(MetrMSM2)
+
+colnames(MetrMSM2) <- seq(2000, 2020)
+
+MetrMSM2$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r}
+
+lambdasMS0 <- list(1)
+
+for (year in seq(5, 25)) {
+  lambdasMS0 <- lambdasMS0 %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, res$W$MS)[, year]), MSp2), 
+                    c(0, 2))$minimum)
+}
+
+MetrMSW2 <- matrix(0, 22, 21)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(5, 25)) {
+    MetrMSW2[lam, i - 4] <- metric(maxabsDF(points(points.step[[lam]], res$W$MS)[, i]), MSp2)
+  }
+}
+
+MetrMSW2 <- as.data.frame(MetrMSW2)
+
+colnames(MetrMSW2) <- seq(2000, 2020)
+
+MetrMSW2$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r}
+stepM <- data.frame(IN0 = unlist(lambdasIN0, use.names=FALSE),
+                    IN8 = unlist(lambdasIN8, use.names=FALSE),
+                    SP0 = unlist(lambdasSP0, use.names=FALSE),
+                    SP8 = unlist(lambdasSP8, use.names=FALSE),
+                    MS0 = c(rep(NA, 4), unlist(lambdasMS0, use.names=FALSE)),
+                    MS8 = c(rep(NA, 4), unlist(lambdasMS8, use.names=FALSE)),
+                    PU0 = unlist(lambdasPU0, use.names=FALSE),
+                    PU8 = unlist(lambdasPU8, use.names=FALSE),
+                    year = seq(1995, 2020))
+
+```
+
+
+#### Power
+
+```{r}
+
+lambdasPU8 <- list(1)
+
+for (year in seq(1, 25)) {
+  lambdasPU8 <- lambdasPU8 %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, res$M$PU)[1:41, year]), p3), 
+                    c(0, 1))$minimum)
+}
+
+MetrPU <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(1, 25)) {
+    MetrPU[lam, i] <- metric(maxabsDF(points.step(lambdas[[lam]], res$M$PU)[1:41, i]), p3)
+  }
+}
+
+MetrPU <- as.data.frame(MetrPU)
+
+colnames(MetrPU) <- seq(1996, 2020)
+
+MetrPU$lambdas <- as.numeric(lambdas)
+```
+
+```{r include=F}
+
+lambdasPU0 <- list(1)
+
+for (year in seq(1, 25)) {
+  lambdasPU0 <- lambdasPU0 %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, res$M$PU)[1:31, year]), p2), 
+                    c(0, 2))$minimum)
+}
+
+MetrPU2 <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(1, 25)) {
+    MetrPU2[lam, i] <- metric(maxabsDF(points.step(lambdas[[lam]], res$M$PU)[1:31, i]), p2)
+  }
+}
+MetrPU2 <- as.data.frame(MetrPU2)
+
+colnames(MetrPU2) <- seq(1996, 2020)
+
+MetrPU2$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r include=F}
+
+lambdas <- list(1)
+
+for (year in seq(1, 25)) {
+  lambdas <- lambdas %>% append(
+    opt <- optimize(function(l) metric(maxabsDF(points.step(l, res$M$PU)[1:26, year]), p1), 
+                    c(0, 2))$minimum)
+}
+
+MetrPU3 <- matrix(0, 26, 25)
+
+for (lam in seq(1, length(lambdas))) {
+  for (i in seq(1, 25)) {
+    MetrPU3[lam, i] <- metric(maxabsDF(points.step(lambdas[[lam]], res$M$PU)[1:26, i]), p1)
+  }
+}
+MetrPU3 <- as.data.frame(MetrPU3)
+
+colnames(MetrPU3) <- seq(1996, 2020)
+
+MetrPU3$lambdas <- as.numeric(lambdas)
+
+```
+
+```{r}
+#write_xlsx(list('SP21' = MetrSP3, 
+#                'SP7' = MetrSP2, 
+#                'SP99' = MetrSP,
+#                'PU21' = MetrPU3, 
+#                'PU7' = MetrPU2, 
+#                'PU99' = MetrPU,
+#                'IN21' = MetrIN3, 
+#                'IN7' = MetrIN2, 
+#                'IN99' = MetrIN), 
+#           'M-metr-lam.xlsx')
+```
+
+## Графики
+
+```{r}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/data')
+
+plots <- read.csv("plots.csv", sep = ';')
+plots$year <- seq(1996, 2020)
+plots$one <- rep(1, 25)
+
+plotsALT <- read.csv("plotsALT.csv", sep = ';')
+plotsALT$year <- seq(1996, 2020)
+
+```
+
+```{r}
+theme_set(theme_light(base_size = 30))
+options(scipen = 9999, digits = 3)
+```
+
+### Метрика до 1. Разные годы.
+
+```{r warning=F}
+
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+
+mto1.M.IN <- ggplot(plots) +
+  geom_line(aes(y=c(rep(NA, 10), mto108.M.IN[11:25]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(rep(NA, 2), mto100.M.IN[3:11], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_line(aes(y=c(mto185.M.IN[1:3], rep(NA, 22)), x = year), 
+            linewidth=1, col = 'black', linewidth = 1.5) + # до 2000
+  geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+mto1.M.IN
+ggsave('mto1-M-IN.png', width = 15, height = 5)
+
+mto1.W.IN <- ggplot(plots) +
+  geom_line(aes(y=c(rep(NA, 10), mto108.W.IN[11:25]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=c(rep(NA, 2), mto100.W.IN[3:11], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) +
+  geom_line(aes(y=c(mto185.W.IN[1:3], rep(NA, 22)), x = year), 
+            linewidth=1, col = 'black', linewidth = 1.5) +
+  geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+mto1.W.IN
+ggsave('mto1-W-IN.png', width = 15, height = 5)
+
+mto1.M.SP <- ggplot(plots) +
+  geom_line(aes(y=c(rep(NA, 10), mto108.M.SP[11:25]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=c(rep(NA, 2), mto100.M.SP[3:11], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) +
+  geom_line(aes(y=c(mto185.M.SP[1:3], rep(NA, 22)), x = year), 
+            linewidth=1, col = 'black', linewidth = 1.5) +
+  geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Спринт') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+mto1.M.SP
+ggsave('mto1-M-SP.png', width = 15, height = 5)
+
+mto1.W.SP <- ggplot(plots) +
+  geom_line(aes(y=c(rep(NA, 10), mto108.W.SP[11:25]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=c(rep(NA, 2), mto100.W.SP[3:11], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) +
+  geom_line(aes(y=c(mto185.W.SP[1:3], rep(NA, 22)), x = year), 
+            linewidth=1, col = 'black', linewidth = 1.5) +
+  geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Спринт') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+mto1.W.SP
+ggsave('mto1-W-SP.png', width = 15, height = 5)
+
+```
+
+```{r}
+setwd('C:/Users/drass/OneDrive/Рабочий стол/ВШЭ/3 курс (смерть)/курсач/figures')
+ggarrange(mto1.W.IN, mto1.W.SP, nrow = 2)
+ggsave('mto1-W.png', width = 20, height = 15)
+
+ggarrange(mto1.M.IN, mto1.M.SP, nrow = 2)
+ggsave('mto1-M.png', width = 20, height = 15)
+```
+
+
+### Параметр-Метрики
+
+```{r warning=F}
+
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+
+ylim.prim <- c(0.9, 1.3) 
+ylim.sec <- c(0.0, 0.2)  
+
+b <- diff(ylim.prim)/diff(ylim.sec)
+a <- ylim.prim[1] - b*ylim.sec[1]
+
+#####MEN-IN-2008######
+IN.M.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.M.IN*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto108.M.IN*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.M.IN, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5)) +
+  theme(text=element_text(family="serif"))
+IN.M.8
+ggsave('IN-M-8.png', height = 5, width = 10)
+
+
+#####MEN-SP-2008######
+SP.M.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.M.SP*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto108.M.SP*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.M.SP, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  #ggtitle('Спринт') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+SP.M.8
+ggsave('SP-M-8.png', height = 5, width = 10)
+
+#####WOMEN-IN-2008######
+IN.W.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.W.IN*b), linewidth=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto108.W.IN*b), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.W.IN, group = 1), linewidth=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif")) 
+IN.W.8
+ggsave('IN-W-8.png', height = 5, width = 10)
+
+#####WOMEN-SP-2008######
+SP.W.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.W.SP*b), linewidth=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto108.W.SP*b), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+SP.W.8
+ggsave('SP-W-8.png', height = 5, width = 10)
+
+
+
+```
+
+
+```{r warning=F}
+
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+
+#ylim.prim <- c(0.9, 1.3) 
+#ylim.sec <- c(0.0, 0.2)  
+#
+#b <- diff(ylim.prim)/diff(ylim.sec)
+#a <- ylim.prim[1] - b*ylim.sec[1]
+
+#####MEN-IN-2008######
+IN.M.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  #geom_line(aes(y=a + m08.M.IN*b), size=1, col = '#7da0d2') +
+  #geom_line(aes(y=a + mto108.M.IN*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.M.IN, group = 1), size = 1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size = 1, col = 'darkgrey') +
+  xlab('Year')+
+  ylab('Parameter') +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+IN.M.8
+ggsave('IN-M-8-p.png', height = 5, width = 10)
+
+IN.M.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=m08.M.IN), linewidth=1, col = '#7da0d2') +
+  geom_line(aes(y=mto108.M.IN), linewidth=1, col = '#0f2d69') +
+  #geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  #geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Metric') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+IN.M.8
+ggsave('IN-M-8-m.png', height = 5, width = 10)
+
+#####MEN-SP-2008######
+SP.M.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  #geom_line(aes(y=a + m08.M.SP*b), size=1, col = '#7da0d2') +
+  #geom_line(aes(y=a + mto108.M.SP*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.M.SP, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Parameter') +
+  #ggtitle('Спринт') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+SP.M.8
+ggsave('SP-M-8-p.png', height = 5, width = 10)
+
+SP.M.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=m08.M.SP), linewidth=1, col = '#7da0d2') +
+  geom_line(aes(y=mto108.M.SP), linewidth=1, col = '#0f2d69') +
+  #geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  #geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Metric') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+SP.M.8
+ggsave('SP-M-8-m.png', height = 5, width = 10)
+
+#####WOMEN-IN-2008######
+IN.W.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  #geom_line(aes(y=a + m08.W.IN*b), linewidth=1, col = '#7da0d2') +
+  #geom_line(aes(y=a + mto108.W.IN*b), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.W.IN, group = 1), linewidth=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Parameter') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif")) 
+IN.W.8
+ggsave('IN-W-8-p.png', height = 5, width = 10)
+
+IN.W.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=m08.W.IN), linewidth=1, col = '#7da0d2') +
+  geom_line(aes(y=mto108.W.IN), linewidth=1, col = '#0f2d69') +
+  #geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  #geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Metric') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+IN.W.8
+ggsave('IN-W-8-m.png', height = 5, width = 10)
+
+#####WOMEN-SP-2008######
+SP.W.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  #geom_line(aes(y=m08.W.SP), linewidth=1, col = '#7da0d2') +
+  #geom_line(aes(y=mto108.W.SP), linewidth=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Parameter') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+SP.W.8
+ggsave('SP-W-8-p.png', height = 5, width = 10)
+
+SP.W.8 <- ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=m08.W.SP), linewidth=1, col = '#7da0d2') +
+  geom_line(aes(y=mto108.W.SP), linewidth=1, col = '#0f2d69') +
+  #geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  #geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Year') +
+  ylab('Metric') +
+  scale_x_continuous(breaks = c(seq(2006, 2020, 4))) +
+  theme(text=element_text(family="serif"))
+SP.W.8
+ggsave('SP-W-8-m.png', height = 5, width = 10)
+
+```
+
+```{r}
+
+setwd('C:/Users/drass/OneDrive/Рабочий стол/ВШЭ/3 курс (смерть)/курсач/figures')
+ggarrange(IN.M.8, SP.M.8, IN.W.8, SP.W.8)
+ggsave('2008.png', height = 14, width = 24)
+
+```
+
+```{r}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+ylim.prim <- c(0.6, 1.1) 
+ylim.sec <- c(0.0, 0.2)  
+
+b <- diff(ylim.prim)/diff(ylim.sec)
+a <- ylim.prim[1] - b*ylim.sec[1]
+
+#####MEN-SP-2000######
+SP.M.0 <- ggplot(plots[3:11,], aes(x=year)) +
+  geom_line(aes(y=a + m00.M.SP*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto100.M.SP*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l00.M.SP, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  #ggtitle('Спринт') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+SP.M.0
+ggsave('SP-M-0.png', height = 5, width = 10)
+
+#####WOMEN-SP-2000######
+SP.W.0 <- ggplot(plots[3:11,], aes(x=year)) +
+  geom_line(aes(y=a + m00.W.SP*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto100.W.SP*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l00.W.SP, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  theme(text=element_text(family="serif"))
+SP.W.0
+ggsave('SP-W-0.png', height = 5, width = 10)
+
+#####MEN-IN-2000######
+IN.M.0 <- ggplot(plots[3:11,], aes(x=year)) +
+  geom_line(aes(y=a + m00.M.IN*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto100.M.IN*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l00.M.IN, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5)) +
+  
+  #ggtitle('Индивидуальные гонки') +
+  theme(text=element_text(family="serif"))
+IN.M.0
+ggsave('IN-M-0.png', height = 5, width = 10)
+
+#####WOMEN-IN-2000######
+IN.W.0 <- ggplot(plots[3:11,], aes(x=year)) +
+  geom_line(aes(y=a + m00.W.IN*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto100.W.IN*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l00.W.IN, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Year') +
+  scale_y_continuous(
+    name = "Parameter",
+   sec.axis = sec_axis(~ (. - a)/b, name="Metric"))  +
+  theme(text=element_text(family="serif"))
+IN.W.0
+ggsave('IN-W-0.png', height = 5, width = 10)
+```
+
+```{r}
+setwd('C:/Users/drass/OneDrive/Рабочий стол/ВШЭ/3 курс (смерть)/курсач/figures')
+ggarrange(IN.M.0, 
+          SP.M.0, 
+          IN.W.0,
+          SP.W.0)
+ggsave('2000.png', height = 14, width = 24)
+```
+
+### Масс-Старт
+
+```{r}
+setwd('D:/ВШЭ/3 курс (смерть)/курсач/figures')
+
+ggplot(plots[11:25,], aes(x=year)) +
+  geom_line(aes(y=MS.W, colour = 'Женщины'), linewidth=1.5) +
+  geom_line(aes(y=MS.M, colour = 'Мужчины'), linewidth=1.5)+
+  geom_line(aes(y = rep(mean(c(plots[11:25,]$MS.W, plots[11:25,]$MS.M), 15))), 
+            col = 'darkgrey', linewidth=1.5) +
+  xlab("Год") +
+  ylab('Параметр') +
+  scale_colour_manual(NULL, values = c('Женщины'='#7da0d2', 'Мужчины'='#0f2d69')) +
+  theme(legend.position = c(0.2, 0.8),
+        legend.background = element_rect(fill = "white"))  +
+  theme(text=element_text(family="serif")) +
+  labs(colour = NULL)
+
+ggsave('MS.png', height = 7, width = 14)
+
+
+```
+
+### Степенная модель
+
+```{r}
+setwd('C:/Users/drass/OneDrive/Рабочий стол/ВШЭ/3 курс (смерть)/курсач/figures')
+
+theme_set(theme_light(base_size = 30))
+options(scipen = 9999, digits = 2)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=M.SP.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=M.SP.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.18) +
+  theme(text=element_text(family="serif"))
+ggsave('SP-M-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=W.SP.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=W.SP.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.18) +
+  theme(text=element_text(family="serif"))
+ggsave('SP-W-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=M.PU.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=M.PU.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.18) +
+  theme(text=element_text(family="serif"))
+ggsave('PU-M-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=W.PU.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=W.PU.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.18) +
+  theme(text=element_text(family="serif"))
+ggsave('PU-W-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=M.IN.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=M.IN.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.18) +
+  theme(text=element_text(family="serif"))
+ggsave('IN-M-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=W.IN.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=W.IN.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.18) +
+  theme(text=element_text(family="serif"))
+ggsave('IN-W-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=M.MS.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=M.MS.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.05, 0.25) +
+  theme(text=element_text(family="serif"))
+ggsave('MS-M-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT[13:25,], aes(x=year)) +
+  geom_line(aes(y=W.MS.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=W.MS.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.05, 0.25) +
+  theme(text=element_text(family="serif"))
+ggsave('MS-W-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT, aes(x=year)) +
+  geom_line(aes(y=M.SPPU.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=M.SPPU.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.165) +
+  theme(text=element_text(family="serif"))
+ggsave('SPPU-M-alt-8.png', height = 5, width = 10)
+
+ggplot(plotsALT, aes(x=year)) +
+  geom_line(aes(y=W.SPPU.step), size=1, col = '#7da0d2', linewidth = 1.5) +
+  geom_line(aes(y=W.SPPU.exp), size=1, col = '#0f2d69', linewidth = 1.5) +
+  xlab('Год') +
+  ylab('Метрика') +
+  ylim(0.03, 0.165) +
+  theme(text=element_text(family="serif"))
+ggsave('SPPU-W-alt-8.png', height = 5, width = 10)
+
+```
+
+```{r}
+ggplot(stepM[:26,], aes(x=year)) +
+  geom_line(aes(y = IN8), linewidth=1, col = '#7da0d2') +
+  xlab('Год') +
+  theme(text = element_text(family="serif"))  +
+  ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+        plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position = "bottom",
+        legend.background = element_rect(fill = "white"))
+```
+
+## Пример для текста
+
+```{r}
+
+i = 1
+data = data.frame(row.names = seq(1,41))
+for (competition in res$M$IN){
+  if ((competition$Season[1] < 2018 + 2) & (competition$Season[1] > 2018 - 2)){
+    data[, i] = competition$ResultGap[1:41]
+    i = i + 1}
+}
+
+ldata <- lamb(1, data)
+meanLdata <- as.data.frame(rowMeans(ldata, na.rm = T))
+final <- maxabsDF(meanLdata)
+
+xtable(data)
+xtable(ldata)
+xtable(meanLdata)
+xtable(final)
+
+```
+
+## Для защиты
+
+```{r warning=F}
+
+ylim.prim <- c(0.9, 1.3) 
+ylim.sec <- c(0.0, 0.2)  
+
+b <- diff(ylim.prim)/diff(ylim.sec)
+a <- ylim.prim[1] - b*ylim.sec[1]
+
+#####MEN-IN-2008######
+IN.M.8 <- ggplot(plots[13:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.M.IN*b, colour = 'Метрика до оптимальной аппроксимации'), size=1) +
+  geom_line(aes(y=a + mto108.M.IN*b, colour = 'Метрика до аппроксимации с 1'), size=1) +
+  geom_line(aes(y=l08.M.IN, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Год') +
+  scale_y_continuous(
+    name = "Параметр",
+   sec.axis = sec_axis(~ (. - a)/b, name="Метрика"))  +
+  scale_colour_manual(NULL, values = c('Метрика до оптимальной аппроксимации'='#7da0d2',
+                                       'Метрика до аппроксимации с 1'='#0f2d69')) +
+  theme(legend.position = c(0.2, 0.8),
+        legend.background = element_rect(fill = "white"))  +
+  ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5)) +
+  theme(text=element_text(family="serif"))
+IN.M.8
+#ggsave('IN-M-8.png', height = 10, width = 30)
+
+
+#####MEN-SP-2008######
+SP.M.8 <- ggplot(plots[13:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.M.SP*b), size=1, col = '#7da0d2') +
+  geom_line(aes(y=a + mto108.M.SP*b), size=1, col = '#0f2d69') +
+  geom_line(aes(y=l08.M.SP, group = 1), size=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), size=1, col = 'darkgrey') +
+  xlab('Год') +
+  scale_y_continuous(
+    name = "Параметр",
+   sec.axis = sec_axis(~ (. - a)/b, name="Метрика"))  +
+  ggtitle('Спринт') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))  +
+  theme(text=element_text(family="serif"))
+SP.M.8
+#ggsave('SP-M-8.png', height = 10, width = 30)
+
+#####WOMEN-IN-2008######
+IN.W.8 <- ggplot(plots[13:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.W.IN*b), linewidth=1, col = '#ed9595') +
+  geom_line(aes(y=a + mto108.W.IN*b), linewidth=1, col = '#cd5a5a') +
+  geom_line(aes(y=l08.W.IN, group = 1), linewidth=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Год') +
+  scale_y_continuous(
+    name = "Параметр",
+   sec.axis = sec_axis(~ (. - a)/b, name="Метрика")) +
+  theme(text=element_text(family="serif")) 
+IN.W.8
+#ggsave('IN-W-8.png', height = 5, width = 10)
+
+#####WOMEN-SP-2008######
+SP.W.8 <- ggplot(plots[13:25,], aes(x=year)) +
+  geom_line(aes(y=a + m08.W.SP*b), linewidth=1, col = '#ed9595') +
+  geom_line(aes(y=a + mto108.W.SP*b), linewidth=1, col = '#cd5a5a') +
+  geom_line(aes(y=l08.W.SP, group = 1), linewidth=1, linetype = 2) +
+  geom_line(aes(y=one, group = 1), linewidth=1, col = 'darkgrey') +
+  xlab('Год') +
+  scale_y_continuous(
+    name = "Параметр",
+   sec.axis = sec_axis(~ (. - a)/b, name="Метрика"))  +
+  theme(text=element_text(family="serif"))
+SP.W.8
+#ggsave('SP-W-8.png', height = 5, width = 10)
+
+
+
+```
+
+```{r}
+
+setwd('C:/Users/drass/OneDrive/Рабочий стол/ВШЭ/3 курс (смерть)/курсач/figures')
+ggarrange(IN.M.8, SP.M.8, IN.W.8, SP.W.8)
+ggsave('2008.png', height = 14, width = 24)
+
+```
+
+
+
+```{r}
+
+#setwd("D:/ВШЭ/4 курс/вкр")
+#
+#SP.M <- SP.M %>% cbind(read.csv('Sprint-M-new.csv')[,12:17])
+#SP.M$year <- seq(1996, 2020)
+#IN.M <- IN.M %>% cbind(read.csv('Ind-M-new.csv')[,9:14])
+#IN.M$year <- seq(1996, 2020)
+#SP.W <- SP.W %>% cbind(read.csv('Sprint-W-new.csv')[,9:14])
+#SP.W$year <- seq(1996, 2020)
+#IN.W <- IN.W %>% cbind(read.csv('Ind-W-new.csv')[,9:14])
+#IN.W$year <- seq(1996, 2020)
+
+```
+
+```{r warning=F}
+
+SP.M.graph <- ggplot(SP.M[3:25,]) +
+  geom_line(aes(y=c(rep(NA, 8), metr.to.1.21[9:23]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(mto100.M.SP[1:9], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Sprint.Men') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+SP.M.graph
+ggsave('SP-M-graph.png', width = 10, height = 5)
+
+IN.M.graph <- ggplot(IN.M[3:25,]) +
+  geom_line(aes(y=c(rep(NA, 8), metr.to.1.21[9:23]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(mto100.M.IN[1:9], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Individual. Мужчины') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+IN.M.graph
+ggsave('IN-M-graph.png', width = 10, height = 5)
+
+SP.W.graph <- ggplot(SP.W[3:25,]) +
+  geom_line(aes(y=c(rep(NA, 8), metr.to.1.21[9:23]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(mto100.W.SP[1:9], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Спринт. Женщины.') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+SP.W.graph
+ggsave('SP-W-graph.png', width = 10, height = 5)
+
+IN.W.graph <- ggplot(IN.W[3:25,]) +
+  geom_line(aes(y=c(rep(NA, 8), metr.to.1.21[9:23]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(mto100.W.IN[1:9], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Year') +
+  ylab('Metric') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Индивидуальные. Женщины.') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+IN.W.graph
+ggsave('IN-W-graph.png', width = 10, height = 5)
+
+```
+
+
+```{r}
+ggarrange(IN.W.graph, SP.W.graph, 
+          IN.M.graph, SP.M.graph,
+          nrow = 4)
+
+ggsave('New-places.png', width = 20, height = 30)
+```
+
+
+```{r warning=F}
+
+ggplot(SP[3:25,]) +
+  geom_line(aes(y=c(rep(NA, 8), metr.to.1.21[11:25]), x = year), 
+             col = '#7da0d2', linewidth = 1.5) + # с 2008
+  #geom_line(aes(y=c(rep(NA, 10), metr.to.1.21[11:25]), x = year), 
+  #          linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(mto100.M.SP[3:11], rep(NA, 14)), x = year), 
+            col = '#0f2d69', linewidth = 1.5) + # c 2000
+  #geom_line(aes(y=c(mto185.M.IN[1:3], rep(NA, 22)), x = year), 
+  #          linewidth=1, col = 'black', linewidth = 1.5) + # до 2000
+  #geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Год') +
+  ylab('Метрика') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+
+ggplot(SP[1:11,]) +
+  #geom_line(aes(y=c(rep(NA, 8), metr.to.1.21[11:25]), x = year), 
+  #          linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  #geom_line(aes(y=c(rep(NA, 10), metr.to.1.21[11:25]), x = year), 
+  #          linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(rep(NA, 2), metr.to.lambda7[3:11]), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_line(aes(y=c(mto185.M.SP[1:3], rep(NA, 8)), x = year), 
+            linewidth=1, col = 'black', linewidth = 1.5) + # до 2000
+  geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  #geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Год') +
+  ylab('Метрика') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+
+ggplot(plots) +
+  geom_line(aes(y=c(rep(NA, 10), mto108.M.SP[11:25]), x = year), 
+            linewidth=1, col = '#7da0d2', linewidth = 1.5) + # с 2008
+  geom_line(aes(y=c(rep(NA, 2), mto100.M.SP[3:11], rep(NA, 14)), x = year), 
+            linewidth=1, col = '#0f2d69', linewidth = 1.5) + # c 2000
+  geom_line(aes(y=c(mto185.M.SP[1:3], rep(NA, 22)), x = year), 
+            linewidth=1, col = 'black', linewidth = 1.5) + # до 2000
+  geom_vline(xintercept = 1998, linewidth = 1.5, col = 'grey', linetype = 2) +
+  geom_vline(xintercept = 2006, linewidth = 1.5, col = 'grey', linetype = 2) +
+  xlab('Год') +
+  ylab('Метрика') +
+  theme(text=element_text(family="serif")) +
+  #ggtitle('Индивидуальные гонки') +
+  theme(plot.title.position = 'plot', 
+      plot.title = element_text(hjust = 0.5))
+
+
+```
